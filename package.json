@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --rootDir ./src"
   },
   "repository": {
     "type": "git",
@@ -19,7 +19,11 @@
     "url": "https://github.com/duplow/webtoon-reader/issues"
   },
   "homepage": "https://github.com/duplow/webtoon-reader#readme",
+  "jest": {
+    "verbose": true
+  },
   "dependencies": {
+    "@types/jest": "^27.0.1",
     "@types/node": "^16.7.2",
     "axios": "^0.21.1",
     "eslint": "^7.32.0",
@@ -30,5 +34,11 @@
     "prettier": "^2.3.2",
     "ts-node": "^10.2.1",
     "typescript": "^4.3.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.15.0",
+    "@babel/preset-env": "^7.15.0",
+    "@babel/preset-typescript": "^7.15.0",
+    "babel-jest": "^27.0.6"
   }
 }

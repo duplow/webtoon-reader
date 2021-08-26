@@ -59,10 +59,12 @@ export interface IWorkProviderSettings {
 
 export interface IWorkProvider {
   settings: IWorkProviderSettings,
-  //getLatestReleases() : Promise<Array<WorkLink>>
-  searchWorks (params: IWorkSearchInput) : Promise<Array<IWorkLink>>
-  getWorkDetails (work: IWorkLink) : Promise<IWorkDetails>,
-  getChapterDetails (work: IWorkLink, chapter: IWorkChapterLink) : Promise<IChapterDetails>
+  getLatestReleases?() : Promise<Array<IWorkLink>>
+  isValidWorkUrl?(workUrl: string) : Promise<boolean>
+  isValidChapterUrl?(chapterUrl: string) : Promise<boolean>
+  searchWorks(params: IWorkSearchInput) : Promise<Array<IWorkLink>>
+  getWorkDetails(work: IWorkLink) : Promise<IWorkDetails>
+  getChapterDetails(work: IWorkLink, chapter: IWorkChapterLink) : Promise<IChapterDetails>
 }
 
 export default IWorkProvider
