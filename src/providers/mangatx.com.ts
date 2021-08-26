@@ -13,9 +13,9 @@ import {
 export class MangaTxProvider implements IWorkProvider {
 
   public settings: {
-    id: 'mangatx',
-    title: 'mangatx',
-    baseUrl: 'mangatx.com',
+    id: 'mangatx.com',
+    title: 'mangatx.com',
+    baseUrl: 'https://mangatx.com',
     language: 'en-US',
     isMultiLanguage: false,
   }
@@ -31,6 +31,7 @@ export class MangaTxProvider implements IWorkProvider {
   }
 
   async getWorkDetails (work: IWorkLink) : Promise<IWorkDetails> {
+    // https://mangatx.com/manga/release-that-witch/chapter-309/
     return {
       title: '',
       coverUrl: '',
@@ -44,6 +45,7 @@ export class MangaTxProvider implements IWorkProvider {
   }
 
   async getChapterDetails (work: IWorkLink, chapter: IWorkChapterLink) : Promise<IChapterDetails> {
+    // https://mangatx.com/manga/release-that-witch/chapter-309/
     return {
       title: 'ch 1',
       sequenceNumber: 1,
