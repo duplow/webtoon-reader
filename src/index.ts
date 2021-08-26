@@ -1,8 +1,6 @@
-import { MangaTxProvider } from './providers/mangatx';
+import { MangaTxProvider } from './providers/mangatx.com';
 
 const provider = new MangaTxProvider();
-
-console.log('OK 123')
 
 provider.searchWorks({ q: 'Texto' })
   .then((response) => {
