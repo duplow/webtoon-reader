@@ -1,68 +1,115 @@
-import ReadingMode from '../types/reading-mode'
-import ReadingOrietation from '../types/reading-orietation'
+import { ISourceProvider, ICatalogOptions, ICatalogResponse } from '../core/ISourceProvider'
+import { IWorkLink } from '../core/IWorkLink';
+import { IWorkChapterLink } from '../core/IWorkChapterLink';
+import { IWorkDetails } from '../core/IWorkDetails';
+import { IWorkChapterDetails } from '../core/IWorkChapterDetails';
+import axios, { AxiosInstance } from 'axios'
+import cheerio from 'cheerio'
+import * as striptags from 'striptags'
 
-import { 
-  IWorkProvider, 
-  IWorkSearchInput,
-  IWorkChapterLink,
-  IWorkLink,
-  IWorkDetails,
-  IChapterDetails
-} from '../types/provider';
+const removeBreaklines = (s: string): string => {
+  return s.replace(/(\r\n|\n|\r|\t)/gm, '')
+}
 
-export class MangaTxProvider implements IWorkProvider {
+export class MangaTxProvider implements ISourceProvider {
 
-  public settings: {
-    id: 'mangatx.com',
-    title: 'mangatx.com',
-    baseUrl: 'https://mangatx.com',
-    language: 'en-US',
-    isMultiLanguage: false,
+  private httpClient: AxiosInstance
+
+  constructor()
+  {
+    this.httpClient = axios.create({
+      baseURL: 'https://mangatx.com',
+    })
   }
 
-  async searchWorks(params: IWorkSearchInput) : Promise<Array<IWorkLink>> {
-    return new Promise((resolve) => {
-      resolve([
-        {
-          workUrl: ''
-        }
-      ])
-    });
+  isValidWorkUrl?(workUrl: string) : Promise<boolean> {
+    return Promise.resolve(workUrl.startsWith('https://mangatx.com/manga/') || workUrl.startsWith('http://mangatx.com/manga/'))
   }
 
-  async getWorkDetails (work: IWorkLink) : Promise<IWorkDetails> {
-    // https://mangatx.com/manga/release-that-witch/chapter-309/
-    return {
-      title: '',
-      coverUrl: '',
-      chaptersCount: 1,
-      readingOrietation: ReadingOrietation.LEFT_TO_RIGHT,
-      readingMode: ReadingMode.WEBTOON,
-      //latestChapter?: IWorkChapterLink,
-      //firstChapter?: IWorkChapterLink,
-      language: 'en-US'
-    }
+  isValidChapterUrl?(chapterUrl: string) : Promise<boolean> {
+    return Promise.resolve(chapterUrl.match(/^http[s]?\:\/\/mangatx\.com\/manga\/\w+\/chapter-\w+[\/]?/).length > 0)
   }
 
-  async getChapterDetails (work: IWorkLink, chapter: IWorkChapterLink) : Promise<IChapterDetails> {
-    // https://mangatx.com/manga/release-that-witch/chapter-309/
-    return {
-      title: 'ch 1',
-      sequenceNumber: 1,
-      pagesCount: 10,
-      workUrl: work.workUrl,
-      chapterUrl: chapter.chapterUrl,
-      pages: [
-        {
-          pageNumber: 1,
-          chapterUrl: chapter.chapterUrl,
-          pageUrl: `${chapter.chapterUrl}#1`,
-          imageUrl: `${chapter.chapterUrl}#1.jpg`,
-        }
-      ]
-    }
+  getCatalog(options: ICatalogOptions): Promise<ICatalogResponse> {
+    throw new Error('Not implemented yet');
   }
 
+  getWorkDetails(workUrl: string) : Promise<IWorkDetails> {
+    return this.httpClient.get(workUrl)
+      .then(({ data }) => {
+        const $ = cheerio.load(data)
+
+        const chapters = $('ul.main.version-chap li.wp-manga-chapter').toArray()
+          .map(function(el) {
+            return $(el).children('a').first().attr('href')
+          })
+          .reverse()
+
+        return {
+          title: removeBreaklines(striptags(($('.post-title > h1').html().replace('<span class="manga-title-badges hot">HOT</span>', '')))).trim(),
+          //altTitles?: string[],
+          sinopse: ($('meta[property="og:description"]').attr('content') || '').trim(),
+          //rating?: number,
+          coverUrl: $('.tab-summary .summary_image img').attr('data-src'),
+          chaptersCount: chapters.length,
+          //readingOrietation?: ReadingOrientation,
+          //readingMode?: ReadingMode,
+          latestChapter: {
+            workUrl: workUrl,
+            chapterUrl: chapters[chapters.length - 1],
+          },
+          firstChapter: {
+            workUrl: workUrl,
+            chapterUrl: chapters[0],
+          },
+          chapters: chapters.map((chapterUrl) => ({ workUrl, chapterUrl })),
+        } as IWorkDetails
+      })
+  }
+
+  getChapterDetails(workUrl: string, chapterUrl: string) : Promise<IWorkChapterDetails> {
+    return this.httpClient.get(chapterUrl)
+      .then(({ data }) => {
+        const $ = cheerio.load(data)
+        const pages = $('.reading-content .page-break img').toArray()
+          .map((el) => {
+            return $(el).attr('data-src') || ''
+          })
+          .map((imageUrl, index) => {
+            return {
+              workUrl,
+              chapterUrl,
+              pageNumber: index + 1,
+              pageUrl: null,
+              imageUrl: removeBreaklines(imageUrl).trim(),
+            }
+          })
+
+        const previousChapterUrl = $('a.btn.prev_page').attr('href') || ''
+        const nextChapterUrl = $('a.btn.next_page').attr('href') || ''
+
+        return {
+          workUrl,
+          chapterUrl,
+          title: ($('.wp-manga-nav ol.breadcrumb li.active').html() || '').trim(),
+          sequenceNumber: -1,
+          pagesCount: -1,
+          pages: [ ...pages ],
+          previousChapter:
+            !!previousChapterUrl ? {
+              workUrl,
+              chapterUrl: previousChapterUrl
+            }
+            : undefined,
+          nextChapter:
+            !!nextChapterUrl ? {
+              workUrl,
+              chapterUrl: nextChapterUrl,
+            }
+            : undefined,
+        } as IWorkChapterDetails
+      })
+  }
 }
 
 export default MangaTxProvider;
